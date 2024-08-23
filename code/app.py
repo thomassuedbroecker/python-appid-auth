@@ -1,4 +1,4 @@
-from flask import redirect, request
+from flask import redirect, request, render_template
 
 from auth import AppIDAuthProvider
 
@@ -15,7 +15,8 @@ def index():
 def auth_route():
     print(f"**Log: 'auth_route' content!")
     print(f"**Log: 'auth_route' args {request}!")
-    return f"This 'auth_route' requires authentication and authorization - Powered by IBM Cloud App ID!"
+    return render_template('auth_route.html')
+    #f"This 'auth_route' requires authentication and authorization - Powered by IBM Cloud App ID!"
 
 @flask.route("/noauth_route", methods=['GET'])
 def noauth_route():
