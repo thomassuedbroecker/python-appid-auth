@@ -1,0 +1,6 @@
+export APPID_CLIENT_ID=
+export APPID_CLIENT_SECRET=
+export APPID_REDIRECT_URI="http://localhost:5000/auth_route"
+export APPID_OAUTH_SERVER_URL=
+export APPID_MGMT_TOKEN=
+export IBM_CLOUD_APIKEY=

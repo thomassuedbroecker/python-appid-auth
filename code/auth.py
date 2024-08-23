@@ -2,7 +2,7 @@ import os
 import logging
 import json
 import base64
-import functools
+import functools                                 
 
 from flask import Flask, redirect, request, session
 
@@ -11,9 +11,8 @@ from requests.auth import HTTPBasicAuth
 from requests.structures import CaseInsensitiveDict
 
 class AppIDAuthProvider:
-
     # App ID
-
+     
     APPID_MGMT_TOKEN = ""
 
     CLIENT_ID = os.environ["APPID_CLIENT_ID"]
@@ -36,19 +35,22 @@ class AppIDAuthProvider:
 
     def __init__(self):
 
-        logging.basicConfig(level = logging.INFO)
-
+        logging.basicConfig(level = logging.DEBUG)
+        print(f"**Log init AppIDAuthProvider calls!")
         self.flask = Flask(__name__)
         self.flask.secret_key = os.environ["SESSION_SECRET_KEY"]
 
         @self.flask.route("/afterauth")
-        def after_auth():
-            # This route is pre-registered with the App ID service instance as
+        def afterauth():
+            # This 'afterauth' route is pre-registered with the App ID service instance as
             # the 'redirect' URI, so that it can redirect the flow back into
             # the application after successful authentication
+            print(f"**Log: Invocation of '/afterauth' request.args:\n{request.args}\n")
             err_msg = ""
+            request.args
             if "code" in request.args:
                 code = request.args.get("code")
+                print(f"**Log: Invocation of '/afterauth' code:\n{code}\n")
                 # Send the authorization code to the token endpoint to retrieve access_token and id_token
                 token_endpoint = AppIDAuthProvider.OAUTH_SERVER_URL + "/token"
                 resp = requests.post(token_endpoint,
@@ -67,7 +69,7 @@ class AppIDAuthProvider:
                     if "roles" in resp_json:
                         session[AppIDAuthProvider.APPID_USER_TOKEN] = access_token
                         session[AppIDAuthProvider.APPID_USER_ROLES] = resp_json["roles"]
-                        logging.info(" User {} logged in".format(user_email))
+                        logging.info("** User {} logged in".format(user_email))
                     else:
                         err_msg = "Could not retrieve user roles"
                         if "error_description" in resp_json:
@@ -80,27 +82,36 @@ class AppIDAuthProvider:
                 logging.error(err_msg)
                 session[AppIDAuthProvider.AUTH_ERRMSG] = err_msg
             endpoint_context = session.pop(AppIDAuthProvider.ENDPOINT_CONTEXT, None)
+            print(f"**Log redirect endpoint_context:\n{endpoint_context}\n")
+            print(f"**Log session:\n{session[AppIDAuthProvider.APPID_USER_TOKEN]}\n")
             return redirect(endpoint_context)
 
     @classmethod
     def check(cls, func):
+        print(f"**Log check!\n{cls}\n")
         @functools.wraps(func)
         def wrapper_check(*args, **kwargs):
             auth_active, err_msg = cls._is_auth_active()
+            print(f"**Log: check - auth_active - {auth_active}")
             if not auth_active:
+                print(f"**Log: check - auth_active - is not active")
                 if err_msg:
                     return "Internal error: " + err_msg
                 else:
+                    print(f"**Log: check - start_auth")
                     return cls.start_auth()
             else:
+                print(f"**Log: check - auth_active - is active")
                 if not cls._user_has_a_role():
-                    return "Unauthorized!"
+                    return "Unauthorized! User has no role."
                 else:
+                    print(f"**Log: check - auth_active - user has a role")
                     return func(*args, **kwargs)
         return wrapper_check
 
     @classmethod
     def _is_auth_active(cls):
+        print(f"**Log _is_auth_active!\n{cls}\n")
         if cls.AUTH_ERRMSG in session:
             return False, session.pop(cls.AUTH_ERRMSG)
         elif cls.APPID_USER_TOKEN in session:
@@ -127,6 +138,7 @@ class AppIDAuthProvider:
     def start_auth(cls):
         # This method redirects the application to App ID service's authorization endpoint. The App ID service
         # in turn uses its pre-configured identity provider for user authentication
+        print(f"**Log start_auth: {cls.ENDPOINT_CONTEXT} !")
         if cls.ENDPOINT_CONTEXT not in session:
             session[cls.ENDPOINT_CONTEXT] = request.path
         authorization_endpoint = cls.OAUTH_SERVER_URL + "/authorization"
